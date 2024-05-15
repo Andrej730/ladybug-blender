@@ -484,3 +484,9 @@ def schedule_solution(component, milliseconds):
     return
     doc = component.OnPingDocument()
     doc.ScheduleSolution(milliseconds)
+
+
+# Empty method that LB requires.
+# Method itself seems to be Rhino specific
+# and doesn't require an implementation.
+def turn_off_old_tag(component): ...
