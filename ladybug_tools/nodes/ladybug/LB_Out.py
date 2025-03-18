@@ -76,7 +76,8 @@ class SvLBOut(bpy.types.Node, SverchCustomTreeNode):
         
         if self.should_bake:
             self.create_blender_colored_v()
-            self.create_wireframe([Vector(xyz) for xyz in self.blender_v], [])
+            if self.blender_v:
+                self.create_wireframe([Vector(xyz) for xyz in self.blender_v], [])
         self.outputs['verts'].sv_set(self.v)
         self.outputs['edges'].sv_set(self.e)
         self.outputs['faces'].sv_set(self.f)
