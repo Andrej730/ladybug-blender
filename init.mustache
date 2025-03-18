@@ -28,10 +28,10 @@ logger = logging.getLogger('sverchok')
 
 def nodes_index():
     return [("Ladybug", [
-        ("ladybug.LB_Out", "SvLBOut", "Viz"),
+        ("ladybug.LB_Out", "SvLBOut", "LB Viz"),
         # Generated nodes
         {{#nodes}}
-        ("ladybug.{{node_module}}", "Sv{{node_classname}}", "{{subcategory}}"),
+        ("ladybug.{{node_module}}", "Sv{{node_classname}}", "LB {{subcategory}}"),
         {{/nodes}}
     ])]
 
