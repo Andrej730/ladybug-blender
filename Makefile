@@ -2,7 +2,7 @@ SHELL := /bin/bash
 VERSION:=`date '+%y%m%d'`
 _python_ver:=$(shell python --version | grep -Po 'Python \K[0-9].[0-9]+')
 
-VENV_ACTIVATE:=$(VENV_ACTIVATE)
+VENV_ACTIVATE:=bin/activate
 VENV_LIB:=lib/python$(_python_ver)/site-packages
 ifeq ($(OS),Windows_NT)
 VENV_ACTIVATE:=Scripts/activate
