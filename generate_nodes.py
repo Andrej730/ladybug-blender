@@ -1,4 +1,5 @@
 import os
+import shutil
 import json
 import pystache
 import subprocess
@@ -8,7 +9,19 @@ class Generator():
     def __init__(self):
         self.json_dir = './dist/working/json/'
         self.icon_dir = './dist/working/icon/'
-        self.python2to3_bin = '/usr/bin/2to3'
+
+        if os.name == "nt":
+            exe_path = shutil.which("2to3")
+            assert exe_path is not None, "2to3 is not found."
+            self.python2to3_bin = exe_path
+
+            exe_path = shutil.which("magick")
+            assert exe_path is not None, "magick is not found."
+            self.magick_bin = "magick"
+        else:
+            self.python2to3_bin = "/usr/bin/2to3"
+            self.magick_bin = "convert"
+
         #self.out_dir = './nodes/ladybug/'
         self.out_dir = './dist/working/python/'
 
@@ -69,7 +82,7 @@ class Generator():
             os.path.join(self.icon_dir, '{}.png'.format(module_name.replace('_', ' '))),
             icon_path)
         # This incantation reverts the intensity channel in HSI. It will make light colors darker, and dark colors lighter
-        res = subprocess.run(["convert", icon_path, "-colorspace", "HSI", "-channel", "B", "-level", "100,0%", "+channel", "-colorspace", "sRGB", icon_path])
+        res = subprocess.run([self.magick_bin, icon_path, "-colorspace", "HSI", "-channel", "B", "-level", "100,0%", "+channel", "-colorspace", "sRGB", icon_path])
         if res.returncode != 0:
             raise Exception(f"Failed to run magick convert on {icon_path}.")
 
