@@ -30,7 +30,7 @@ Parallel.ForEach = for_each
 tasks.Parallel = Parallel
 
 
-def join_geometry_to_mesh(geometry):
+def join_geometry_to_mesh(geometry: list[bpy.types.Object]) -> bpy.types.Object:
     """Convert an array of Rhino Breps and/or Meshes into a single Rhino Mesh.
 
     This is a typical pre-step before using the intersect_mesh_rays function.
@@ -38,7 +38,7 @@ def join_geometry_to_mesh(geometry):
     Args:
         geometry: An array of Rhino Breps or Rhino Meshes.
     """
-    copied_geometry = []
+    copied_geometry: list[bpy.types.Object] = []
     for geo in geometry:
         new = geo.copy()
         new.data = new.data.copy()
@@ -46,7 +46,8 @@ def join_geometry_to_mesh(geometry):
     c = {}
     c['object'] = c['active_object'] = copied_geometry[0]
     c['selected_objects'] = c['selected_editable_objects'] = copied_geometry
-    bpy.ops.object.join(c)
+    with bpy.context.temp_override(**c):
+        bpy.ops.object.join()
     bpy.context.scene.collection.objects.link(copied_geometry[0])
     # Apply all transformations
     copied_geometry[0].data.transform(copied_geometry[0].matrix_world)
