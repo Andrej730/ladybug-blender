@@ -299,7 +299,15 @@ class SvLBOut(bpy.types.Node, SverchCustomTreeNode):
         if not self.blender_colored_v:
             return
         import numpy as np
-        from space_view3d_point_cloud_visualizer import PCVControl
+        try:
+            # TODO: broken in Blender >= 4.0 because PCV is relying on `bgl` that was deprecated.
+            from space_view3d_point_cloud_visualizer import PCVControl
+        except ImportError:
+            raise ImportError(
+                "Point Cloud Visualizer addon is missing"
+                "('space_view3d_point_cloud_visualizer' module not found),"
+                "see installation instructions."
+            )
         obj = bpy.data.objects.new('Ladybug Colored Points', None)
         vs = [(cv.point.x, cv.point.y, cv.point.z if hasattr(cv.point, 'z') else 0) for cv in self.blender_colored_v]
         cs = [(cv.color.r/255, cv.color.g/255, cv.color.b/255) for cv in self.blender_colored_v]

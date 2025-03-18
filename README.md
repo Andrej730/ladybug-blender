@@ -26,7 +26,8 @@ The ladybug-blender plugin has the following dependencies:
 
  1. Install Sverchok (scroll down on https://blenderbim.org/download.html - download zip and install like any other add-on)
  2. Install Ladybug Tools (scroll down on https://blenderbim.org/download.html - download zip and install like any other add-on)
- 3. Want to display coloured points? Yes you do. [Install it](https://github.com/uhlik/bpy/blob/master/space_view3d_point_cloud_visualizer.py).
+ 3. Want to display coloured points? Yes you do. [Install it](https://github.com/uhlik/bpy/blob/master/space_view3d_point_cloud_visualizer.py).  
+    Note that this supported only for Blender <4.0 and recent versions of PCV from blendermarket won't work.
  4. Restart Blender
 
 If you are upgrading, uninstall the old Ladybug Tools, and restart Blender, then
