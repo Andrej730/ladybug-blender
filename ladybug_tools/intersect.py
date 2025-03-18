@@ -10,6 +10,9 @@ import mathutils.geometry
 import array as specializedarray
 from .config import tolerance
 from mathutils import Vector, Matrix
+from typing import Optional, Union, Literal
+
+from ladybug_geometry.geometry3d import Point3D, Vector3D
 
 
 # Stub for .net tasks.
@@ -67,7 +70,13 @@ def join_geometry_to_mesh(geometry: list[bpy.types.Object]) -> bpy.types.Object:
 
 
 def intersect_mesh_rays(
-        mesh, points, vectors, normals=None, cpu_count=None, parallel=True):
+    mesh: bpy.types.Object,
+    points: list[Point3D],
+    vectors: list[Vector3D],
+    normals: Optional[list[Vector3D]] = None,
+    cpu_count: Optional[int] = None,
+    parallel: bool = True,
+) -> tuple[list[Literal[0, 1]], Union[list[list[float]], None]]:
     """Intersect a group of rays (represented by points and vectors) with a mesh.
 
     All combinations of rays that are possible between the input points and

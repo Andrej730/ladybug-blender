@@ -6,6 +6,7 @@ from sverchok.data_structure import multi_socket, updateNode, zip_long_repeat
 
 from ladybug_tools.text import LadybugText
 from ladybug_tools.colorize import ColoredPoint
+from ladybug.color import Color
 from ladybug_geometry.geometry2d.line import LineSegment2D
 from ladybug_geometry.geometry2d.arc import Arc2D
 from ladybug_geometry.geometry3d.arc import Arc3D
@@ -18,6 +19,7 @@ from ladybug_geometry.geometry3d.polyline import Polyline3D
 
 from math import pi, sin, cos
 from mathutils import Vector, Matrix
+from typing import Any, Union
 
 class SvLBOut(bpy.types.Node, SverchCustomTreeNode):
     bl_idname = 'SvLBOut'
@@ -25,7 +27,19 @@ class SvLBOut(bpy.types.Node, SverchCustomTreeNode):
     sv_icon = 'LB_OUT'
     base_name = 'geometry '
     multi_socket_type = 'SvStringsSocket'
-    should_bake: BoolProperty(default=False, update=updateNode, name="BAKE ?")
+    should_bake: BoolProperty(
+        default=False,
+        update=updateNode,
+        name="BAKE ?",
+        description="Bake the geometry to Blender objects as meshes, points clouds visualized using PCV, point cloud meshes, etc.",
+    )
+
+
+    v: list[Union[list[Vector], list[tuple[float, float, float]]]]
+    e: list[list[tuple[int, int]]]
+    f: list[list[list[int]]]
+    blender_v: list[tuple[float, float, float]]
+    blender_colored_v: list[ColoredPoint]
 
     def sv_init(self, context):
         self.inputs.new('SvStringsSocket', 'geometry')
@@ -45,8 +59,11 @@ class SvLBOut(bpy.types.Node, SverchCustomTreeNode):
         self.v = []
         self.e = []
         self.f = []
+
+        # Unused.
         self.text_v = []
         self.text_s = []
+
         self.blender_v = []
         self.blender_colored_v = []
 
@@ -64,7 +81,7 @@ class SvLBOut(bpy.types.Node, SverchCustomTreeNode):
         self.outputs['edges'].sv_set(self.e)
         self.outputs['faces'].sv_set(self.f)
 
-    def _process_geometry(self, geometry):
+    def _process_geometry(self, geometry: Any) -> None:
         if isinstance(geometry, (tuple, list)):
             for g in geometry:
                 self._process_geometry(g)
@@ -73,7 +90,8 @@ class SvLBOut(bpy.types.Node, SverchCustomTreeNode):
         if self.should_bake:
             self._process_blender_geometry(geometry)
 
-    def _process_sverchok_geometry(self, geometry):
+    def _process_sverchok_geometry(self, geometry: Any) -> None:
+        """Update `v`, `e`, `f` from the provided geometry."""
         if isinstance(geometry, Arc2D):
             self.sverchok_from_arc2d(geometry)
         elif isinstance(geometry, Arc3D):
@@ -89,7 +107,8 @@ class SvLBOut(bpy.types.Node, SverchCustomTreeNode):
         else:
             print('WARNING: geometry {} not yet supported in Sverchok: {}'.format(type(geometry), geometry))
 
-    def _process_blender_geometry(self, geometry):
+    def _process_blender_geometry(self, geometry: Any) -> None:
+        """Create Blender objects from the provided geometry."""
         if isinstance(geometry, Arc2D):
             self.blender_from_arc2d(geometry)
         elif isinstance(geometry, Arc3D):
@@ -112,26 +131,26 @@ class SvLBOut(bpy.types.Node, SverchCustomTreeNode):
         else:
             print('WARNING: geometry {} not yet supported in Blender: {}'.format(type(geometry), geometry))
 
-    def from_linesegment2d(self, line, z=0):
+    def from_linesegment2d(self, line: LineSegment2D, z: float = 0) -> tuple[list[tuple[float, float, float]], list[tuple[int, int]]]:
         """Rhino LineCurve from ladybug LineSegment2D."""
         v = [(line.p1.x, line.p1.y, z), (line.p2.x, line.p2.y, z)]
-        return v, [[0, 1]]
+        return v, [(0, 1)]
 
-    def sverchok_from_linesegment2d(self, line, z=0):
+    def sverchok_from_linesegment2d(self, line: LineSegment2D, z: float = 0) -> None:
         v, e = self.from_linesegment2d(line, z)
         self.v.append(v)
         self.e.append(e)
         self.f.append([[0]]) # Hack
 
-    def blender_from_linesegment2d(self, line, z=0):
+    def blender_from_linesegment2d(self, line: LineSegment2D, z: float = 0) -> None:
         self.create_wireframe(*self.from_linesegment2d(line))
 
-    def from_arc2d(self, arc, z=0):
+    def from_arc2d(self, arc: Arc2D, z: float = 0) -> tuple[list[tuple[float, float, float]], list[tuple[int, int]]]:
         """Rhino Arc from ladybug Arc2D."""
         arc_perimeter = (arc.a2-arc.a1)*arc.r
         # TODO: unhardcode facetation of 32 times
-        v = []
-        e = []
+        v: list[tuple[float, float, float]] = []
+        e: list[tuple[int, int]] = []
         step = (arc.a2 - arc.a1) / 32
         for i in range(0, 32 + 1):
             a = arc.a1 + i * step
@@ -140,23 +159,23 @@ class SvLBOut(bpy.types.Node, SverchCustomTreeNode):
         del e[-1]
         return v, e
 
-    def sverchok_from_arc2d(self, arc, z=0):
+    def sverchok_from_arc2d(self, arc: Arc2D, z: float = 0) -> None:
         v, e = self.from_arc2d(arc, z)
         self.v.append(v)
         self.e.append(e)
         self.f.append([[0]]) # Hack
 
-    def blender_from_arc2d(self, arc, z=0):
+    def blender_from_arc2d(self, arc: Arc2D, z: float = 0) -> None:
         self.create_wireframe(*self.from_arc2d(arc))
 
-    def from_arc3d(self, arc):
+    def from_arc3d(self, arc: Arc3D) -> tuple[list[Vector], list[tuple[int, int]]]:
         """Rhino Arc from ladybug Arc3D."""
         if arc.is_circle:
             assert False, 'I have not yet built circular arcs'
         else:
             # TODO: unhardcode facetation of 32 times
-            v = []
-            e = []
+            v: list[Vector] = []
+            e: list[tuple[int, int]] = []
             a1 = arc.a1
             # I'm assuming that a1 and a2 is _always_ ordered from small to large
             a2 = arc.a2 if arc.a1 < arc.a2 else arc.a2 + (2 * pi)
@@ -176,25 +195,26 @@ class SvLBOut(bpy.types.Node, SverchCustomTreeNode):
             del e[-1]
         return v, e
 
-    def sverchok_from_arc3d(self, arc):
+    def sverchok_from_arc3d(self, arc: Arc3D) -> None:
         v, e = self.from_arc3d(arc)
         self.v.append(v)
         self.e.append(e)
         self.f.append([[0]]) # Hack
 
-    def blender_from_arc3d(self, arc):
+    def blender_from_arc3d(self, arc: Arc3D) -> None:
         self.create_wireframe(*self.from_arc3d(arc))
 
-    def blender_from_mesh(self, mesh, z=0):
+    def blender_from_mesh(self, mesh: Union[Mesh2D, Mesh3D], z: float = 0) -> None:
         """Rhino Mesh from ladybug Mesh2D."""
         data = bpy.data.meshes.new('Ladybug Mesh')
         data.from_pydata([Vector((v.x, v.y, v.z if hasattr(v, 'z') else 0)) for v in mesh.vertices], [], mesh.faces)
-        def get_material_name(color):
+
+        def get_material_name(color: Color) -> str:
             return 'ladybug-{}-{}-{}-{}'.format(color.r, color.g, color.b, color.a)
 
         if mesh.is_color_by_face:
-            colors = list(set(mesh.colors))
-            material_to_slot = {}
+            colors: list[Color] = list(set(mesh.colors))
+            material_to_slot: dict[str, int] = {}
             for i, color in enumerate(colors):
                 name = get_material_name(color)
                 material_to_slot[name] = i
@@ -230,16 +250,16 @@ class SvLBOut(bpy.types.Node, SverchCustomTreeNode):
         obj = bpy.data.objects.new('Ladybug Mesh', data)
         bpy.context.scene.collection.objects.link(obj)
 
-    def from_point(self, point):
+    def from_point(self, point: Union[Point2D, Point3D]) -> tuple[float, float, float]:
         """Rhino Point3d from ladybug Point3D."""
-        return (point.x, point.y, point.z if hasattr(point, 'z') else 0)
+        return (point.x, point.y, point.z if isinstance(point, Point3D) else 0)
 
-    def sverchok_from_point(self, point):
+    def sverchok_from_point(self, point: Union[Point2D, Point3D]) -> None:
         self.v.append([self.from_point(point)])
-        self.e.append([[0, 0]]) # Hack
+        self.e.append([(0, 0)]) # Hack
         self.f.append([[0]]) # Hack
 
-    def from_polyline(self, polyline, z=0):
+    def from_polyline(self, polyline: Union[Polyline2D, Polyline3D], z: float = 0) -> tuple[list[tuple[float, float, float]], list[tuple[int, int]]]:
         """Rhino closed PolyLineCurve from ladybug Polyline3D."""
         v = [(p.x, p.y, p.z if hasattr(p, 'z') else z) for p in polyline.vertices]
         e = [(i, i+1) for i in range(0, len(polyline.vertices)-1)]
@@ -255,16 +275,16 @@ class SvLBOut(bpy.types.Node, SverchCustomTreeNode):
             self.e.append(e)
             self.f.append([[0]]) # Hack
 
-    def sverchok_from_polyline(self, polyline, z=0):
+    def sverchok_from_polyline(self, polyline: Union[Polyline2D, Polyline3D], z: float = 0) -> None:
         v, e = self.from_polyline(polyline, z)
         self.v.append(v)
         self.e.append(e)
         self.f.append([[0]]) # Hack
 
-    def blender_from_polyline(self, polyline, z=0):
+    def blender_from_polyline(self, polyline: Union[Polyline2D, Polyline3D], z: float = 0) -> None:
         self.create_wireframe(*self.from_polyline(polyline, z))
 
-    def blender_from_text(self, text):
+    def blender_from_text(self, text: LadybugText) -> None:
         data = bpy.data.curves.new('Ladybug Text', 'FONT')
         data.body = text.text
         data.size = text.height
@@ -295,7 +315,7 @@ class SvLBOut(bpy.types.Node, SverchCustomTreeNode):
         obj.location = (text.plane.o.x, text.plane.o.y, text.plane.o.z)
         bpy.context.scene.collection.objects.link(obj)
 
-    def create_blender_colored_v(self):
+    def create_blender_colored_v(self) -> None:
         if not self.blender_colored_v:
             return
         import numpy as np
@@ -314,7 +334,7 @@ class SvLBOut(bpy.types.Node, SverchCustomTreeNode):
         PCVControl(obj).draw(vs, [], cs)
         bpy.context.scene.collection.objects.link(obj)
 
-    def create_wireframe(self, v, e):
+    def create_wireframe(self, v: Union[list[Vector], list[tuple[float, float, float]]], e: list[tuple[int, int]]) -> None:
         data = bpy.data.meshes.new('Ladybug Wireframe')
         data.from_pydata([Vector(xyz) for xyz in v], e, [])
         obj = bpy.data.objects.new('Ladybug Wireframe', data)
