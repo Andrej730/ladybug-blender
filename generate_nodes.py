@@ -4,6 +4,8 @@ import json
 import pystache
 import subprocess
 from pathlib import Path
+from typing import Any
+from generate_init import Generator as InitGenerator
 
 class Generator():
     def __init__(self):
@@ -34,7 +36,7 @@ class Generator():
             with open(filename, 'r') as spec_f:
                 self.generate_node(os.path.basename(filename), json.load(spec_f))
 
-    def generate_node(self, filename, spec):
+    def generate_node(self, filename: str, spec: dict[str, Any]) -> None:
         code_data = {
             'cad': 'tools',
             'Cad': 'Blender Ladybug',
@@ -60,7 +62,7 @@ class Generator():
         spec['input_default_list'] = ', '.join(spec['input_default_list'])
         spec['input_access_list'] = ', '.join(["'{}'".format(i['access']) for i in spec['inputs']])
         spec['output_name_list'] = ', '.join(["'{}'".format(o['name']) for o in spec['outputs']])
-        spec['nickname'] = spec['nickname'].replace('+', 'Plus').replace(" ", "_")
+        InitGenerator.spec_process_nickname(spec)
         spec['nickname_uppercase'] = spec['nickname'].upper()
         spec['description'] = spec['description'].replace('\n', ' ').replace("'", "\\'")
         for item in spec['inputs']:

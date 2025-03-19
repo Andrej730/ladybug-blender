@@ -24,14 +24,23 @@ import sverchok
 from ladybug_tools import icons, sockets
 from sverchok.ui.nodeview_space_menu import add_node_menu
 import logging
+from typing import NamedTuple
+
+
+class NodeEntry(NamedTuple):
+    module_name: str
+    node_name: str
+    category: str
+
+
 logger = logging.getLogger('sverchok')
 
-def nodes_index():
+def nodes_index() -> list[tuple[str, list[NodeEntry]]]:
     return [("Ladybug", [
-        ("ladybug.LB_Out", "SvLBOut", "LB Viz"),
+        NodeEntry("ladybug.LB_Out", "SvLBOut", "LB Viz"),
         # Generated nodes
         {{#nodes}}
-        ("ladybug.{{node_module}}", "Sv{{node_classname}}", "LB {{subcategory}}"),
+        NodeEntry("ladybug.{{node_module}}", "Sv{{node_classname}}", "LB {{subcategory}}"),
         {{/nodes}}
     ])]
 
